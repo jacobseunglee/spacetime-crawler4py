@@ -17,14 +17,38 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
     return list()
 
+
+
 def is_valid(url):
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
+
     try:
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
             return False
+        
+        # disallowed robots.txt urls/paths
+
+        dirs = parsed.path.split("/")
+        if parsed.netloc == "www.ics.uci.edu":
+            if dirs[0] in set(["bin", "~mpufal"]):
+                return False
+        elif parsed.netloc in set(["www.stat.uci.edu", "www.cs.uci.edu"]):
+            if dirs[0] == "wp-admin" and dirs[1] != "admin-ajax.php":
+                return False
+        elif parsed.netloc == "www.informatics.uci.edu":
+            if dirs[0] == "research" and dirs[1] not in set(
+                ["labs-centers", "areas-of-expertise", "example-research-projects", "phd-research",
+                 "past-dissertations", "masters-research", "undergraduate-research", "gifts-grants"]):
+                return False
+            elif dirs[0] == "wp-admin" and dirs[1] != "admin-ajax.php":
+                return False
+        else:
+            # if outside of the domains return False
+            return False
+        
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
