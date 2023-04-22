@@ -33,17 +33,17 @@ def is_valid(url):
 
         dirs = parsed.path.split("/")
         if parsed.netloc == "www.ics.uci.edu":
-            if dirs[0] in set(["bin", "~mpufal"]):
+            if dirs[1] in set(["bin", "~mpufal"]):
                 return False
         elif parsed.netloc in set(["www.stat.uci.edu", "www.cs.uci.edu"]):
-            if dirs[0] == "wp-admin" and dirs[1] != "admin-ajax.php":
+            if dirs[1] == "wp-admin" and dirs[2] != "admin-ajax.php":
                 return False
         elif parsed.netloc == "www.informatics.uci.edu":
-            if dirs[0] == "research" and dirs[1] not in set(
+            if dirs[1] == "research" and dirs[2] not in set(
                 ["labs-centers", "areas-of-expertise", "example-research-projects", "phd-research",
                  "past-dissertations", "masters-research", "undergraduate-research", "gifts-grants"]):
                 return False
-            elif dirs[0] == "wp-admin" and dirs[1] != "admin-ajax.php":
+            elif dirs[1] == "wp-admin" and dirs[2] != "admin-ajax.php":
                 return False
         else:
             # if outside of the domains return False
