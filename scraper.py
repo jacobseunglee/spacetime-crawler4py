@@ -1,6 +1,7 @@
 import re
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
+from urllib import robotparser
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -33,26 +34,32 @@ def is_valid(url):
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
             return False
-        
+        for domain in [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]:
+            if not parsed.netloc.endswith(domain):
+                return False
         # disallowed robots.txt urls/paths
-
-        dirs = parsed.path.split("/")
-        if parsed.netloc == "www.ics.uci.edu":
-            if dirs[1] in ["bin", "~mpufal"]:
-                return False
-        elif parsed.netloc in ["www.stat.uci.edu", "www.cs.uci.edu"]:
-            if dirs[1] == "wp-admin" and dirs[2] != "admin-ajax.php":
-                return False
-        elif parsed.netloc == "www.informatics.uci.edu":
-            if dirs[1] == "research" and dirs[2] not in \
-                ["labs-centers", "areas-of-expertise", "example-research-projects", "phd-research",
-                 "past-dissertations", "masters-research", "undergraduate-research", "gifts-grants"]:
-                return False
-            elif dirs[1] == "wp-admin" and dirs[2] != "admin-ajax.php":
-                return False
-        else:
-            # if outside of the domains return False
+        robotparse = robotparser.RobotFileParser(parsed.netloc + "/robots.txt")
+        robotparse.read()
+        if not robotparse.can_fetch("*", url):
             return False
+
+        # dirs = parsed.path.split("/")
+        # if parsed.netloc == "www.ics.uci.edu":
+        #     if dirs[1] in ["bin", "~mpufal"]:
+        #         return False
+        # elif parsed.netloc in ["www.stat.uci.edu", "www.cs.uci.edu"]:
+        #     if dirs[1] == "wp-admin" and dirs[2] != "admin-ajax.php":
+        #         return False
+        # elif parsed.netloc == "www.informatics.uci.edu":
+        #     if dirs[1] == "research" and dirs[2] not in \
+        #         ["labs-centers", "areas-of-expertise", "example-research-projects", "phd-research",
+        #          "past-dissertations", "masters-research", "undergraduate-research", "gifts-grants"]:
+        #         return False
+        #     elif dirs[1] == "wp-admin" and dirs[2] != "admin-ajax.php":
+        #         return False
+        # else:
+        #     # if outside of the domains return False
+        #     return False
         
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
