@@ -76,12 +76,13 @@ If absolute, just return the path.
 def get_absolute_path(path: str, current_url: str) -> str:
     # can an empty string be in the href?
 
-    # if absolute path
-    if len(path) > 3 and path[:4] == "http":
+    parsed_path = urlparse(path)
+    # is absolute path
+    if parsed_path.scheme:
         return path
-    # partially absolute path
-    elif len(path) > 1 and path[:2] == "//":
-        return "https" + path
-    # if relative path
-    elif path and path[0] == "/":
+    # is partially absolute
+    elif parsed_path.netloc:
+        return "http" + path
+    # is relative
+    else:
         return current_url.rstrip("/") + path
