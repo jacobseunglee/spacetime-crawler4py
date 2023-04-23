@@ -1,5 +1,6 @@
 import re
 from urllib.parse import urlparse
+from bs4 import BeautifulSoup
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -15,9 +16,13 @@ def extract_next_links(url, resp):
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    return list()
 
+    parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
+    # for link in parsed_html.find_all("a"):
+    #     # get the link and convert
+    #     check_link(link.get("href"))
 
+    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")]
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
@@ -33,15 +38,15 @@ def is_valid(url):
 
         dirs = parsed.path.split("/")
         if parsed.netloc == "www.ics.uci.edu":
-            if dirs[1] in set(["bin", "~mpufal"]):
+            if dirs[1] in ["bin", "~mpufal"]:
                 return False
-        elif parsed.netloc in set(["www.stat.uci.edu", "www.cs.uci.edu"]):
+        elif parsed.netloc in ["www.stat.uci.edu", "www.cs.uci.edu"]:
             if dirs[1] == "wp-admin" and dirs[2] != "admin-ajax.php":
                 return False
         elif parsed.netloc == "www.informatics.uci.edu":
-            if dirs[1] == "research" and dirs[2] not in set(
+            if dirs[1] == "research" and dirs[2] not in \
                 ["labs-centers", "areas-of-expertise", "example-research-projects", "phd-research",
-                 "past-dissertations", "masters-research", "undergraduate-research", "gifts-grants"]):
+                 "past-dissertations", "masters-research", "undergraduate-research", "gifts-grants"]:
                 return False
             elif dirs[1] == "wp-admin" and dirs[2] != "admin-ajax.php":
                 return False
@@ -62,3 +67,21 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
+'''
+Check the given url, see if its relative or absolute path.
+If relative, make the conversion and return the path.
+If absolute, just return the path.
+'''
+def get_absolute_path(path: str, current_url: str) -> str:
+    # can an empty string be in the href?
+
+    # if absolute path
+    if len(path) > 3 and path[:4] == "http":
+        return path
+    # partially absolute path
+    elif len(path) > 1 and path[:2] == "//":
+        return "https" + path
+    # if relative path
+    elif path and path[0] == "/":
+        return current_url.rstrip("/") + path
