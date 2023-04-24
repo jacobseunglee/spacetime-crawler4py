@@ -49,13 +49,13 @@ def is_valid(url):
             return False
         
         # disallowed robots.txt urls/paths
-        robotparse = robotparser.RobotFileParser(parsed.scheme + "://" + parsed.netloc + "/robots.txt")
-        robotparse.read()
-        if not robotparse.can_fetch("*", url):
-            return False
+        # robotparse = robotparser.RobotFileParser(f"http://{host}:{port}/" + "?" + parsed.scheme + "://" + parsed.netloc + "/robots.txt")
+        # robotparse.read()
+        # if not robotparse.can_fetch("*", url):
+        #     return False
         
-        if is_trap(url):
-            return False
+        # if is_trap(url):
+        #     return False
 
         # dirs = parsed.path.split("/")
         # if parsed.netloc == "www.ics.uci.edu":
