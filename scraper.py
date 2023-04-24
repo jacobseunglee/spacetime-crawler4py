@@ -89,7 +89,8 @@ If absolute, just return the path.
 '''
 def get_absolute_path(path: str, current_url: str) -> str:
     # can an empty string be in the href?
-
+    if path == None:
+        path = ""
     parsed_path = urlparse(path)
     # is absolute path
     if parsed_path.scheme:
