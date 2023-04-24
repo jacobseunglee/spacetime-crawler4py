@@ -25,6 +25,12 @@ def extract_next_links(url, resp):
 
     return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")]
 
+def in_domain_scope(parsed):
+    for domain in [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]:
+        if parsed.netloc.endswith(domain):
+            return True
+    return False
+
 def is_valid(url):
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
@@ -34,11 +40,12 @@ def is_valid(url):
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
             return False
-        for domain in [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]:
-            if not parsed.netloc.endswith(domain):
-                return False
+        
+        if not in_domain_scope(parsed):
+            return False
+        
         # disallowed robots.txt urls/paths
-        robotparse = robotparser.RobotFileParser(parsed.netloc + "/robots.txt")
+        robotparse = robotparser.RobotFileParser(parsed.scheme + "://" + parsed.netloc + "/robots.txt")
         robotparse.read()
         if not robotparse.can_fetch("*", url):
             return False
