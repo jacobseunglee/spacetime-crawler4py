@@ -3,6 +3,10 @@ from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 from urllib import robotparser
 
+REPEATED_TRESH = 15
+
+visited = {}
+
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
@@ -48,6 +52,9 @@ def is_valid(url):
         robotparse = robotparser.RobotFileParser(parsed.scheme + "://" + parsed.netloc + "/robots.txt")
         robotparse.read()
         if not robotparse.can_fetch("*", url):
+            return False
+        
+        if is_trap(url):
             return False
 
         # dirs = parsed.path.split("/")
@@ -101,3 +108,21 @@ def get_absolute_path(path: str, current_url: str) -> str:
     # is relative
     else:
         return current_url.rstrip("/") + path
+    
+
+'''
+Check url pattern to make sure does not lead to a trap
+'''
+def is_trap(url):
+    parsed = urlparse(url)
+    base = parsed.scheme + '://' + parsed.netloc + parsed.path
+    if base in visited:
+        visited[base] += 1
+        if visited[base] > REPEATED_TRESH:
+            return True
+        else:
+            return False
+    else:
+        visited[base] = 1
+        return True
+    
