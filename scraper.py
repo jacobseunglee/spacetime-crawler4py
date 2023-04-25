@@ -58,27 +58,9 @@ def is_valid(url):
         # if not robotparse.can_fetch("*", url):
         #     return False
         
-        # if is_trap(url):
-        #     return False
+        if is_trap(url):
+            return False
 
-        # dirs = parsed.path.split("/")
-        # if parsed.netloc == "www.ics.uci.edu":
-        #     if dirs[1] in ["bin", "~mpufal"]:
-        #         return False
-        # elif parsed.netloc in ["www.stat.uci.edu", "www.cs.uci.edu"]:
-        #     if dirs[1] == "wp-admin" and dirs[2] != "admin-ajax.php":
-        #         return False
-        # elif parsed.netloc == "www.informatics.uci.edu":
-        #     if dirs[1] == "research" and dirs[2] not in \
-        #         ["labs-centers", "areas-of-expertise", "example-research-projects", "phd-research",
-        #          "past-dissertations", "masters-research", "undergraduate-research", "gifts-grants"]:
-        #         return False
-        #     elif dirs[1] == "wp-admin" and dirs[2] != "admin-ajax.php":
-        #         return False
-        # else:
-        #     # if outside of the domains return False
-        #     return False
-        
         return not re.match(
             r".*\.(css|js|bmp|gif|jpe?g|ico"
             + r"|png|tiff?|mid|mp2|mp3|mp4"
