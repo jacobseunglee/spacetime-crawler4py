@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urldefrag
 from bs4 import BeautifulSoup
 
 REPEATED_TRESH = 15
@@ -97,6 +97,7 @@ def get_absolute_path(path: str, current_url: str) -> str:
     # can an empty string be in the href?
     if path == None:
         path = ""
+    path = urldefrag(path)[0]
     parsed_path = urlparse(path)
     # is absolute path
     if parsed_path.scheme:
