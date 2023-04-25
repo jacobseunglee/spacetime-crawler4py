@@ -21,6 +21,11 @@ def extract_next_links(url, resp):
     #         resp.raw_response.content: the content of the page!
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
+    # didn't get the page, so return empty list
+    if resp.status != 200:
+        print(resp.error)
+        return []
+    
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
     # for link in parsed_html.find_all("a"):
     #     # get the link and convert
