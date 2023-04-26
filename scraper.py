@@ -36,11 +36,11 @@ def extract_next_links(url, resp):
     if resp.status != 200:
         print(resp.url, resp.error)
         return []
-    elif resp.status == 200 and resp.raw_response.content is None:
-        print(resp.url, "no content")
-        return []
     elif not resp.raw_response:
         print(resp.url, "none response")
+        return []
+    elif resp.status == 200 and resp.raw_response.content is None:
+        print(resp.url, "no content")
         return []
 
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
@@ -54,8 +54,6 @@ def extract_next_links(url, resp):
         return []
     # elif len(prevsimhash) > 0 and any([cursimhash.distance(x) <= 10 for x in prevsimhash]):
     elif len(prevsimhash) > 0 and any(cursimhash.distance(x) <= 4 for x in prevsimhash):
-        close = [cursimhash.distance(x) for x in prevsimhash if cursimhash.distance(x) <= 4]
-        print("close simhash:", close)
         return []
     prev.append(cur)
     prevsimhash.append(cursimhash)
