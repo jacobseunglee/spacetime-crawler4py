@@ -6,6 +6,7 @@ import nltk
 from collections import defaultdict
 from collections import Counter
 from nltk.corpus import stopwords
+from nltk.tokenize import RegexpTokenizer
 
 REPEATED_TRESH = 15
 
@@ -72,10 +73,13 @@ def extract_next_links(url, resp):
     # if len(prevsimhash) > 5:
     #     prevsimhash.popleft()
 
-    pageTokens = nltk.word_tokenize(text)
+
+    pageTokens = RegexpTokenizer(r'\w+')
+    pageTokens.tokenize(text)
+    #pageTokens = nltk.word_tokenize(text)
     stopWords = set(stopwords.words('english'))
-    punctuation = {",",".","{","}","[","]","|","(",")","<",">"}
-    stopWords = stopWords + punctuation
+    #punctuation = {",",".","{","}","[","]","|","(",")","<",">"}
+    #stopWords = stopWords + punctuation
     wordsFiltered = []
     for w in pageTokens:
         if w not in stopWords:
@@ -83,6 +87,7 @@ def extract_next_links(url, resp):
 
     if len(wordsFiltered) > largest_count:
         largest_count = len(wordsFiltered)
+        global largest_page 
         largest_page = url
     updateTokens(wordsFiltered)
 
