@@ -10,6 +10,8 @@ from simhash import Simhash
 from collections import deque
 
 def checksum(resp):
+    if not resp.raw_response:
+        return 0
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
     text = parsed_html.get_text()
     sum = 0
@@ -18,6 +20,8 @@ def checksum(resp):
     return sum
 
 def similarityhash(resp):
+    if not resp.raw_response:
+        return Simhash("")
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
     text = parsed_html.get_text()
     return Simhash(text)
@@ -50,9 +54,11 @@ class Worker(Thread):
             if any([prev == x for x in prev]):
                scraped_urls = []
                print(prev, cur)
-            elif len(prevsimhash) > 0 and any([cursimhash.distance(x) <= 10 for x in prevsimhash]):
+            # elif len(prevsimhash) > 0 and any([cursimhash.distance(x) <= 10 for x in prevsimhash]):
+            elif len(prevsimhash) > 0 and any([cursimhash.distance(x) <= 4 for x in prevsimhash]):
                scraped_urls = []
-               print(cursimhash.distance(prevsimhash[-1]))
+               close = [cursimhash.distance(x) for x in prevsimhash if cursimhash.distance(x) <= 4]
+               print("close simhash:", close)
             else:
                 scraped_urls = scraper.scraper(tbd_url, resp)
             prev.append(cur)
