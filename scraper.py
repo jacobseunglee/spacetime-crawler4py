@@ -4,11 +4,12 @@ from bs4 import BeautifulSoup
 from simhash import Simhash
 import nltk
 from collections import defaultdict
+from collections import Counter
 
 REPEATED_TRESH = 15
 
 visited = {}
-tokens = {}
+tokens = Counter()
 largest_page = ""
 largest_count = 0
 subdomain_count = defaultdict(int)
@@ -79,6 +80,12 @@ def extract_next_links(url, resp):
     #     prev.popleft()
     # if len(prevsimhash) > 5:
     #     prevsimhash.popleft()
+
+    pageTokens = nltk.word_tokenize(text)
+    if len(pageTokens) > largest_count:
+        largest_count = len(pageTokens)
+        largest_page = url
+    updateTokens(pageTokens)
 
 
     return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")]
@@ -183,8 +190,8 @@ def subdomain_pages(urls: set) -> None:
 
 
 def summary():
-    sortedTokens = sorted(tokens, key = lambda x:x[1], reverse=True)[:50]
-    print(sortedTokens)
-    print(largest_page)
+    for token, freq in tokens.most_common(50):
+        print(token, freq)
+    print(largest_page +": "+ largest_count)
     print(subdomain_count(visited))
     
