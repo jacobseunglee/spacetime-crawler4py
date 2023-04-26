@@ -1,10 +1,21 @@
 import re
 from urllib.parse import urlparse, urldefrag
 from bs4 import BeautifulSoup
+from simhash import Simhash
 
 REPEATED_TRESH = 15
 
 visited = {}
+
+prev = []
+prevsimhash = []
+
+def checksum(text):
+    sum = 0
+    for character in text.strip():
+        sum += ord(character)
+    return sum
+
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -28,12 +39,35 @@ def extract_next_links(url, resp):
     elif resp.status == 200 and resp.raw_response.content is None:
         print(resp.url, "no content")
         return []
+    elif not resp.raw_response:
+        print(resp.url, "none response")
+        return []
+
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
     # for link in parsed_html.find_all("a"):
     #     # get the link and convert
     #     check_link(link.get("href"))
+    text = parsed_html.get_text()
+    cur = checksum(text)
+    cursimhash = Simhash(text)
+    if any([prev == x for x in prev]):
+        return []
+    # elif len(prevsimhash) > 0 and any([cursimhash.distance(x) <= 10 for x in prevsimhash]):
+    elif len(prevsimhash) > 0 and any(cursimhash.distance(x) <= 4 for x in prevsimhash):
+        close = [cursimhash.distance(x) for x in prevsimhash if cursimhash.distance(x) <= 4]
+        print("close simhash:", close)
+        return []
+    prev.append(cur)
+    prevsimhash.append(cursimhash)
+    # if len(prev) > 5:
+    #     prev.popleft()
+    # if len(prevsimhash) > 5:
+    #     prevsimhash.popleft()
 
     return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")]
+
+
+
 
 def in_domain_scope(parsed):
     for domain in [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]:
