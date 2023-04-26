@@ -50,7 +50,7 @@ def extract_next_links(url, resp):
     text = parsed_html.get_text()
     cur = checksum(text)
     cursimhash = Simhash(text)
-    if any([prev == x for x in prev]):
+    if any([cur == x for x in prev]):
         return []
     # elif len(prevsimhash) > 0 and any([cursimhash.distance(x) <= 10 for x in prevsimhash]):
     elif len(prevsimhash) > 0 and any(cursimhash.distance(x) <= 4 for x in prevsimhash):
