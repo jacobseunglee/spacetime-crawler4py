@@ -2,10 +2,14 @@ import re
 from urllib.parse import urlparse, urldefrag
 from bs4 import BeautifulSoup
 from simhash import Simhash
+import nltk
 
 REPEATED_TRESH = 15
 
 visited = {}
+tokens = {}
+largest_page = ""
+largest_count = 0
 
 prev = []
 prevsimhash = []
@@ -20,6 +24,18 @@ def checksum(text):
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
+    # validLinks = []
+    # for link in links:
+    #     if is_valid(link):
+    #         text = BeautifulSoup(resp.raw_response.content, "lxml").get_text()
+    #         pageTokens = nltk.word_tokenize(text)
+    #         if len(pageTokens) > largest_count:
+    #             largest_count = len(pageTokens)
+    #             largest_page = url
+    #         updateTokens(pageTokens)
+    #         validLinks.append(link)
+    # return validLinks
+            
 
 def extract_next_links(url, resp):
     # Implementation required.
@@ -63,6 +79,7 @@ def extract_next_links(url, resp):
     #     prev.popleft()
     # if len(prevsimhash) > 5:
     #     prevsimhash.popleft()
+
 
     return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")]
 
@@ -148,4 +165,16 @@ def is_trap(url):
     else:
         visited[base] = 1
         return True
+    
+def updateTokens(words):
+    for word in words:
+        if word in tokens:
+            tokens[word] += 1
+        else:
+            tokens[word] = 1
+
+def summary():
+    sortedTokens = sorted(tokens, key = lambda x:x[1], reverse=True)[:50]
+    print(sortedTokens)
+    print(largest_page)
     
