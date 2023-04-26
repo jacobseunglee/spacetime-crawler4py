@@ -3,6 +3,7 @@ from urllib.parse import urlparse, urldefrag
 from bs4 import BeautifulSoup
 from simhash import Simhash
 import nltk
+from collections import defaultdict
 
 REPEATED_TRESH = 15
 
@@ -10,6 +11,7 @@ visited = {}
 tokens = {}
 largest_page = ""
 largest_count = 0
+subdomain_count = defaultdict(int)
 
 prev = []
 prevsimhash = []
@@ -171,8 +173,18 @@ def updateTokens(words):
         else:
             tokens[word] = 1
 
+def subdomain_pages(urls: set) -> None:
+    for url in urls:
+        parsed = urlparse(url)
+        domain = parsed.netloc
+        if domain.endswith("ics.uci.edu"):
+            subdomain = domain.split(".")[0]
+            subdomain_count[subdomain] += 1
+
+
 def summary():
     sortedTokens = sorted(tokens, key = lambda x:x[1], reverse=True)[:50]
     print(sortedTokens)
     print(largest_page)
+    print(subdomain_count(visited))
     
