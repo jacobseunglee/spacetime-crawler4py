@@ -5,6 +5,7 @@ from simhash import Simhash
 import nltk
 from collections import defaultdict
 from collections import Counter
+from nltk.corpus import stopwords
 
 REPEATED_TRESH = 15
 
@@ -27,17 +28,7 @@ def checksum(text):
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
-    # validLinks = []
-    # for link in links:
-    #     if is_valid(link):
-    #         text = BeautifulSoup(resp.raw_response.content, "lxml").get_text()
-    #         pageTokens = nltk.word_tokenize(text)
-    #         if len(pageTokens) > largest_count:
-    #             largest_count = len(pageTokens)
-    #             largest_page = url
-    #         updateTokens(pageTokens)
-    #         validLinks.append(link)
-    # return validLinks
+   
             
 
 def extract_next_links(url, resp):
@@ -82,10 +73,18 @@ def extract_next_links(url, resp):
     #     prevsimhash.popleft()
 
     pageTokens = nltk.word_tokenize(text)
-    if len(pageTokens) > largest_count:
-        largest_count = len(pageTokens)
+    stopWords = set(stopwords.words('english'))
+    punctuation = {",",".","{","}","[","]","|","(",")","<",">"}
+    stopWords = stopWords + punctuation
+    wordsFiltered = []
+    for w in pageTokens:
+        if w not in stopWords:
+            wordsFiltered.append(w)
+
+    if len(wordsFiltered) > largest_count:
+        largest_count = len(wordsFiltered)
         largest_page = url
-    updateTokens(pageTokens)
+    updateTokens(wordsFiltered)
 
 
     return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")]
