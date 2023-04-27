@@ -3,7 +3,6 @@ from urllib.parse import urlparse, urldefrag
 from bs4 import BeautifulSoup
 from simhash import Simhash
 import nltk
-from collections import defaultdict
 from collections import Counter
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
@@ -14,7 +13,7 @@ visited = {}
 tokens = Counter()
 largest_page = ""
 largest_count = 0
-subdomain_count = defaultdict(int)
+subdomain_count = Counter()
 
 prev = []
 prevsimhash = []
@@ -76,22 +75,22 @@ def extract_next_links(url, resp):
     
     global largest_count, largest_page
 
-    pageTokens = RegexpTokenizer(r'\w+')
-    pageTokens.tokenize(text)
+    tokenizer = RegexpTokenizer(r'\w+')
+    page_tokens = tokenizer.tokenize(text)
     #pageTokens = nltk.word_tokenize(text)
-    stopWords = set(stopwords.words('english'))
-    #punctuation = {",",".","{","}","[","]","|","(",")","<",">"}
-    #stopWords = stopWords + punctuation
-    wordsFiltered = []
-    for w in pageTokens:
-        if w not in stopWords:
-            wordsFiltered.append(w)
+    stop_words = set(stopwords.words('english'))
+    punctuation = {",",".","{","}","[","]","|","(",")","<",">"}
+    stop_words = stop_words.union(punctuation)
+    word_count = 0
+    for w in page_tokens:
+        if w not in stop_words:
+            word_count += 1
+            tokens[w] += 1
 
-    if len(wordsFiltered) > largest_count:
-        largest_count = len(wordsFiltered)
+    if word_count > largest_count:
+        largest_count = word_count
         global largest_page 
         largest_page = url
-    updateTokens(wordsFiltered)
 
 
     return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")]
@@ -178,13 +177,6 @@ def is_trap(url):
     else:
         visited[base] = 1
         return True
-    
-def updateTokens(words):
-    for word in words:
-        if word in tokens:
-            tokens[word] += 1
-        else:
-            tokens[word] = 1
 
 def subdomain_pages(urls: set) -> None:
     global subdomain_count
@@ -200,5 +192,5 @@ def summary():
         print(token, freq)
     print(largest_page +": "+ largest_count)
     subdomain_pages(visited)
-    print(subdomain_count)
+    print(sorted(subdomain_count.items()))
     
