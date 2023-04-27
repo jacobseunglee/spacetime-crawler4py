@@ -44,6 +44,7 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
     # didn't get the page, so return empty list
+
     if resp.status != 200:
         print(resp.url, resp.error)
         return []
@@ -72,7 +73,8 @@ def extract_next_links(url, resp):
     #     prev.popleft()
     # if len(prevsimhash) > 5:
     #     prevsimhash.popleft()
-
+    
+    global largest_count, largest_page
 
     pageTokens = RegexpTokenizer(r'\w+')
     pageTokens.tokenize(text)
@@ -185,17 +187,18 @@ def updateTokens(words):
             tokens[word] = 1
 
 def subdomain_pages(urls: set) -> None:
+    global subdomain_count
     for url in urls:
         parsed = urlparse(url)
         domain = parsed.netloc
-        if domain.endswith("ics.uci.edu"):
-            subdomain = domain.split(".")[0]
-            subdomain_count[subdomain] += 1
+        if domain.endswith(".ics.uci.edu") and domain != "www.ics.uci.edu":
+            subdomain_count[domain] += 1
 
 
 def summary():
     for token, freq in tokens.most_common(50):
         print(token, freq)
     print(largest_page +": "+ largest_count)
-    print(subdomain_count(visited))
+    subdomain_pages(visited)
+    print(subdomain_count)
     
