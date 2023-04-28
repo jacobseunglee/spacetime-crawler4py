@@ -6,9 +6,11 @@ import nltk
 from collections import Counter
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
+from urllib import robotparser
 
 REPEATED_TRESH = 15
 
+robots = {}
 visited = {}
 tokens = Counter()
 largest_page = ""
@@ -55,24 +57,18 @@ def extract_next_links(url, resp):
         return []
 
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
-    # for link in parsed_html.find_all("a"):
-    #     # get the link and convert
-    #     check_link(link.get("href"))
+    
     text = parsed_html.get_text()
     cur = checksum(text)
     cursimhash = Simhash(text)
     if any([cur == x for x in prev]):
         return []
-    # elif len(prevsimhash) > 0 and any([cursimhash.distance(x) <= 10 for x in prevsimhash]):
     elif len(prevsimhash) > 0 and any(cursimhash.distance(x) <= 4 for x in prevsimhash):
         return []
     prev.append(cur)
     prevsimhash.append(cursimhash)
-    # if len(prev) > 5:
-    #     prev.popleft()
-    # if len(prevsimhash) > 5:
-    #     prevsimhash.popleft()
-    
+
+
     global largest_count, largest_page
 
     tokenizer = RegexpTokenizer(r'\w+')
@@ -109,6 +105,8 @@ def is_valid(url):
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
 
+    global robots
+
     try:
         parsed = urlparse(url)
         if parsed.scheme not in set(["http", "https"]):
@@ -118,10 +116,20 @@ def is_valid(url):
             return False
         
         # disallowed robots.txt urls/paths
-        # robotparse = robotparser.RobotFileParser(f"http://{host}:{port}/" + "?" + parsed.scheme + "://" + parsed.netloc + "/robots.txt")
-        # robotparse.read()
-        # if not robotparse.can_fetch("*", url):
-        #     return False
+        domain = parsed.netloc
+        if domain not in robots:
+            robotparse = robotparser.RobotFileParser(parsed.scheme + "://" + domain + "/robots.txt")
+            try:
+                robotparse.read()
+                robots[domain] = robotparse
+            except:
+                robots[domain] = None
+                pass
+        else:
+            robotparse = robots[domain]
+            
+        if robotparse and not robotparse.can_fetch("*", url):
+            return False
         
         if is_trap(url):
             return False
@@ -190,7 +198,7 @@ def subdomain_pages(urls: set) -> None:
 def summary():
     for token, freq in tokens.most_common(50):
         print(token, freq)
-    print(largest_page +": "+ largest_count)
+    print(largest_page +": ", largest_count)
     subdomain_pages(visited)
     print(sorted(subdomain_count.items()))
     
