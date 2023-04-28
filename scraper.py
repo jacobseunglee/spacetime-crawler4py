@@ -88,12 +88,13 @@ def extract_next_links(url, resp):
         global largest_page 
         largest_page = url
 
-    # additonal_pages = []
-    # if(url in robots):
-    #     additonal_pages = sitemaps(robots[url])
+    origin_url = urlparse(url)
+    additonal_pages = []
+    if(origin_url.netloc  in robots and origin_url.path == ""):
+        additonal_pages = sitemaps(robots[origin_url.netloc])
 
 
-    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")] #+ additonal_pages
+    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")] + additonal_pages
 
 
 
@@ -210,4 +211,6 @@ def summary():
 def sitemaps(robotParser):
     if robotParser.site_maps() != None:
         return robotParser.site_maps()
+    else:
+        return []
     
