@@ -235,10 +235,8 @@ def is_trap(url):
     parsed = urlparse(url)
     base = parsed.scheme + '://' + parsed.netloc + parsed.path
     path_list = parsed.path.split("/")
-    same_count = Counter()
-    for loc in path_list: 
-        same_count[loc] += 1 
-    if same_count[(max(same_count, key = same_count.get))]> 5:
+    same_count = Counter(path_list)
+    if same_count.most_common(1)[0][1] > 3:
         return True
 
     if base in visited:
