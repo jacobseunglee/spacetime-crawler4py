@@ -181,6 +181,13 @@ Check url pattern to make sure does not lead to a trap
 def is_trap(url):
     parsed = urlparse(url)
     base = parsed.scheme + '://' + parsed.netloc + parsed.path
+    path_list = parsed.path.split("/")
+    same_count = Counter()
+    for loc in path_list: 
+        same_count[loc] += 1 
+    if max(same_count > 5):
+        return True
+
     if base in visited:
         visited[base] += 1
         if visited[base] > REPEATED_TRESH:
@@ -189,7 +196,7 @@ def is_trap(url):
             return False
     else:
         visited[base] = 1
-        return True
+        return False
 
 def subdomain_pages(urls: set) -> None:
     global subdomain_count
