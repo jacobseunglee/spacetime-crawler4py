@@ -42,10 +42,10 @@ def hash(tokens) -> int:
     combreversed = [0] * 256
     for token in tokens:
         weights[token] += 1
-        hashed = hashlib.sha256(token)
+        hashed = hashlib.sha256(token.encode())
         hashes[token] = hashed
     for k,v in hashes.items():
-        num = int(v, 16)
+        num = int(v.hexdigest(), 16)
         weight = weights[k]
         counter = 0
         while counter != 256:
