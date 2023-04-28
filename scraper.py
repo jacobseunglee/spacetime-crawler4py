@@ -202,6 +202,13 @@ Check url pattern to make sure does not lead to a trap
 def is_trap(url):
     parsed = urlparse(url)
     base = parsed.scheme + '://' + parsed.netloc + parsed.path
+    path_list = parsed.path.split("/")
+    same_count = Counter()
+    for loc in path_list: 
+        same_count[loc] += 1 
+    if same_count[(max(same_count, key = same_count.get))]> 5:
+        return True
+
     if base in visited:
         visited[base] += 1
         if visited[base] > REPEATED_TRESH:
@@ -210,6 +217,7 @@ def is_trap(url):
             return False
     else:
         visited[base] = 1
+        return False
         return False
 
 def subdomain_pages(urls: set) -> None:
@@ -232,4 +240,6 @@ def summary():
 def sitemaps(robotParser):
     if robotParser.site_maps() != None:
         return robotParser.site_maps()
+    else:
+        return []
     
