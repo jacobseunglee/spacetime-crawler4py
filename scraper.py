@@ -26,12 +26,57 @@ def checksum(text):
         sum += ord(character)
     return sum
 
+def get_features(text):
+    ret = []
+    width = 3
+    text = text.lower()
+    text = re.sub(r'[^\w]+', '', text)
+    for i in range(len(text) - width + 1):
+        ret.append(text[i:i + width])
+    return ret
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
    
-            
+def similiarity_check(text) -> bool:
+    cur = checksum(text)
+    cursimhash = Simhash(get_features(text))
+    if any([cur == x for x in prev]):
+        return True
+    elif len(prevsimhash) > 0 and any(cursimhash.distance(x) <= 4 for x in prevsimhash):
+        return True
+    prev.append(cur)
+    prevsimhash.append(cursimhash)
+    return False      
+   
+def tokenize_and_count(text, url) -> None:
+    global largest_count, largest_page
+
+    tokenizer = RegexpTokenizer(r'\w+')
+    page_tokens = tokenizer.tokenize(text)
+    #pageTokens = nltk.word_tokenize(text)
+    stop_words = set(stopwords.words('english'))
+    punctuation = {",",".","{","}","[","]","|","(",")","<",">"}
+    stop_words = stop_words.union(punctuation)
+    word_count = 0
+    for w in page_tokens:
+        if w not in stop_words:
+            word_count += 1
+            tokens[w] += 1
+
+    if word_count > largest_count:
+        largest_count = word_count 
+        largest_page = url
+
+def check_sitemaps(url):
+    parsed = urlparse(url)
+    domain = parsed.netloc
+    if domain not in robots:
+        robotparse = robotparser.RobotFileParser(parsed.scheme + "://" + domain + "/robots.txt")
+        robotparse.read()
+        return robotparse.site_maps()
+    return []
 
 def extract_next_links(url, resp):
     # Implementation required.
@@ -57,43 +102,16 @@ def extract_next_links(url, resp):
         return []
 
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
-    
     text = parsed_html.get_text()
-    cur = checksum(text)
-    cursimhash = Simhash(text)
-    if any([cur == x for x in prev]):
+
+    if similiarity_check(text):
         return []
-    elif len(prevsimhash) > 0 and any(cursimhash.distance(x) <= 4 for x in prevsimhash):
-        return []
-    prev.append(cur)
-    prevsimhash.append(cursimhash)
-
-
-    global largest_count, largest_page
-
-    tokenizer = RegexpTokenizer(r'\w+')
-    page_tokens = tokenizer.tokenize(text)
-    #pageTokens = nltk.word_tokenize(text)
-    stop_words = set(stopwords.words('english'))
-    punctuation = {",",".","{","}","[","]","|","(",")","<",">"}
-    stop_words = stop_words.union(punctuation)
-    word_count = 0
-    for w in page_tokens:
-        if w not in stop_words:
-            word_count += 1
-            tokens[w] += 1
-
-    if word_count > largest_count:
-        largest_count = word_count
-        global largest_page 
-        largest_page = url
-
-    # additonal_pages = []
-    # if(url in robots):
-    #     additonal_pages = sitemaps(robots[url])
-
-
-    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")] #+ additonal_pages
+    
+    tokenize_and_count(text, url)
+    
+    additional_pages = check_sitemaps(url)
+    
+    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")] + additional_pages
 
 
 
@@ -103,6 +121,21 @@ def in_domain_scope(parsed):
         if parsed.netloc.endswith(domain):
             return True
     return False
+
+def check_robots(parsed):
+    # disallowed robots.txt urls/paths
+    domain = parsed.netloc
+    if domain not in robots:
+        robotparse = robotparser.RobotFileParser(parsed.scheme + "://" + domain + "/robots.txt")
+        try:
+            robotparse.read()
+            robots[domain] = robotparse
+            return robotparse
+        except:
+            robots[domain] = None
+            return None
+    else:
+        return robots[domain]
 
 def is_valid(url):
     # Decide whether to crawl this url or not. 
@@ -119,19 +152,8 @@ def is_valid(url):
         if not in_domain_scope(parsed):
             return False
         
-        # disallowed robots.txt urls/paths
-        domain = parsed.netloc
-        if domain not in robots:
-            robotparse = robotparser.RobotFileParser(parsed.scheme + "://" + domain + "/robots.txt")
-            try:
-                robotparse.read()
-                robots[domain] = robotparse
-            except:
-                robots[domain] = None
-                pass
-        else:
-            robotparse = robots[domain]
-            
+        robotparse = check_robots(parsed)
+        
         if robotparse and not robotparse.can_fetch("*", url):
             return False
         
@@ -188,7 +210,7 @@ def is_trap(url):
             return False
     else:
         visited[base] = 1
-        return True
+        return False
 
 def subdomain_pages(urls: set) -> None:
     global subdomain_count
