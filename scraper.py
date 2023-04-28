@@ -185,7 +185,7 @@ def is_trap(url):
     same_count = Counter()
     for loc in path_list: 
         same_count[loc] += 1 
-    if max(same_count > 5):
+    if same_count[(max(same_count, key = same_count.get))]> 5:
         return True
 
     if base in visited:
