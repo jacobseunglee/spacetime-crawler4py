@@ -88,8 +88,12 @@ def extract_next_links(url, resp):
         global largest_page 
         largest_page = url
 
+    # additonal_pages = []
+    # if(url in robots):
+    #     additonal_pages = sitemaps(robots[url])
 
-    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")]
+
+    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")] #+ additonal_pages
 
 
 
@@ -201,4 +205,9 @@ def summary():
     print(largest_page +": ", largest_count)
     subdomain_pages(visited)
     print(sorted(subdomain_count.items()))
+
+
+def sitemaps(robotParser):
+    if robotParser.site_maps() != None:
+        return robotParser.site_maps()
     
