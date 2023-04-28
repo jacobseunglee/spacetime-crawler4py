@@ -7,6 +7,7 @@ from collections import Counter
 from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
 from urllib import robotparser
+import hashlib
 
 REPEATED_TRESH = 15
 
@@ -35,6 +36,35 @@ def get_features(text):
         ret.append(text[i:i + width])
     return ret
 
+def hash(tokens) -> int:
+    weights = Counter()
+    hashes = dict()
+    combreversed = [0] * 256
+    for token in tokens:
+        weights[token] += 1
+        hashed = hashlib.sha256(token)
+        hashes[token] = hashed
+    for k,v in hashes.items():
+        num = int(v, 16)
+        weight = weights[k]
+        counter = 0
+        while counter != 256:
+            bit = num % 2
+            if bit == 1:
+                combreversed[counter] += weight
+            else:
+                combreversed[counter] -= weight
+            num = num // 2
+            counter += 1
+    simhash_value = 0
+    for bit in combreversed[::-1]:
+        if bit > 0:
+            simhash_value = simhash_value * 2 + 1
+        else:
+            simhash_value *= 2
+    return simhash_value
+
+
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
@@ -48,13 +78,13 @@ def similiarity_check(text) -> bool:
         return True
     prev.append(cur)
     prevsimhash.append(cursimhash)
-    return False      
+    return False 
    
-def tokenize_and_count(text, url) -> None:
+def tokenize_and_count(text, url) -> list[str]:
     global largest_count, largest_page
 
     tokenizer = RegexpTokenizer(r'\w+')
-    page_tokens = tokenizer.tokenize(text)
+    page_tokens = tokenizer.tokenize(text.lower())
     #pageTokens = nltk.word_tokenize(text)
     stop_words = set(stopwords.words('english'))
     punctuation = {",",".","{","}","[","]","|","(",")","<",">"}
@@ -63,11 +93,12 @@ def tokenize_and_count(text, url) -> None:
     for w in page_tokens:
         if w not in stop_words:
             word_count += 1
-            tokens[w] += 1
+            tokens[w.lower()] += 1
 
     if word_count > largest_count:
         largest_count = word_count 
         largest_page = url
+    return page_tokens
 
 def check_sitemaps(url):
     parsed = urlparse(url)
@@ -104,11 +135,12 @@ def extract_next_links(url, resp):
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
     text = parsed_html.get_text()
 
+    
+    page_tokens = tokenize_and_count(text, url)
+    
     if similiarity_check(text):
         return []
-    
-    tokenize_and_count(text, url)
-    
+
     additional_pages = check_sitemaps(url)
     
     return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")] + additional_pages
@@ -217,7 +249,6 @@ def is_trap(url):
             return False
     else:
         visited[base] = 1
-        return False
         return False
 
 def subdomain_pages(urls: set) -> None:
