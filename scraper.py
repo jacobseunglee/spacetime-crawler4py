@@ -21,20 +21,12 @@ subdomain_count = Counter()
 prev = []
 prevsimhash = []
 
-def checksum(text):
+def checksum(tokens):
     sum = 0
-    for character in text.strip():
-        sum += ord(character)
+    for token in tokens:
+        for character in token:
+            sum += ord(character)
     return sum
-
-def get_features(text):
-    ret = []
-    width = 3
-    text = text.lower()
-    text = re.sub(r'[^\w]+', '', text)
-    for i in range(len(text) - width + 1):
-        ret.append(text[i:i + width])
-    return ret
 
 def hash(tokens) -> int:
     weights = Counter()
@@ -64,20 +56,36 @@ def hash(tokens) -> int:
             simhash_value *= 2
     return simhash_value
 
+def hash_distance(hash1, hash2):
+    return bin(hash1 ^ hash2).count('1')
+
+
+'''
+Just a helper for now, modify the integer after <=
+'''
+def determine_distance(target):
+    for prev in prevsimhash:
+        calc = hash_distance(prev, target)
+        print(calc)
+        if calc <= 10:
+            return True
+    return False
+
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
    
-def similiarity_check(text) -> bool:
-    cur = checksum(text)
-    cursimhash = Simhash(get_features(text))
+def similiarity_check(tokens) -> bool:
+    cur = checksum(tokens)
+    cursimhash = hash(tokens)
+    # if len(prevsimhash) > 0 and any(hash_distance(x, cursimhash) <= 4 for x in prevsimhash):
     if any([cur == x for x in prev]):
         return True
-    elif len(prevsimhash) > 0 and any(cursimhash.distance(x) <= 4 for x in prevsimhash):
+    if len(prevsimhash) and determine_distance(cursimhash):
         return True
-    prev.append(cur)
     prevsimhash.append(cursimhash)
+    prev.append(cur)
     return False 
    
 def tokenize_and_count(text, url) -> list[str]:
@@ -93,7 +101,7 @@ def tokenize_and_count(text, url) -> list[str]:
     for w in page_tokens:
         if w not in stop_words:
             word_count += 1
-            tokens[w.lower()] += 1
+            tokens[w] += 1
 
     if word_count > largest_count:
         largest_count = word_count 
@@ -138,7 +146,7 @@ def extract_next_links(url, resp):
     
     page_tokens = tokenize_and_count(text, url)
     
-    if similiarity_check(text):
+    if similiarity_check(page_tokens):
         return []
 
     additional_pages = check_sitemaps(url)
