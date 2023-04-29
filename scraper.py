@@ -19,7 +19,7 @@ largest_count = 0
 subdomain_count = Counter()
 
 prev = []
-prevsimhash = []
+prev_simhash = []
 
 def checksum(tokens):
     sum = 0
@@ -62,10 +62,9 @@ def hash_distance(hash1, hash2):
 Just a helper for now, modify the integer after <=
 '''
 def determine_distance(target):
-    for prev in prevsimhash:
+    for prev in prev_simhash:
         calc = hash_distance(prev, target)
-        print(calc)
-        if calc <= 10:
+        if calc <= 20:
             return True
     return False
 
@@ -74,15 +73,15 @@ def scraper(url, resp):
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
    
-def similiarity_check(tokens) -> bool:
+def similarity_check(tokens) -> bool:
     cur = checksum(tokens)
-    cursimhash = hash(tokens)
+    cur_simhash = hash(tokens)
     # if len(prevsimhash) > 0 and any(hash_distance(x, cursimhash) <= 4 for x in prevsimhash):
     if any([cur == x for x in prev]):
         return True
-    if len(prevsimhash) and determine_distance(cursimhash):
+    if len(prev_simhash) and determine_distance(cur_simhash):
         return True
-    prevsimhash.append(cursimhash)
+    prev_simhash.append(cur_simhash)
     prev.append(cur)
     return False 
    
@@ -130,7 +129,7 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
     # didn't get the page, so return empty list
-    
+
     if resp.status != 200:
         print(resp.url, resp.error)
         return []
@@ -153,11 +152,11 @@ def extract_next_links(url, resp):
     page_tokens = tokenize_and_count(text, url)
     token_counter = Counter(page_tokens)
     
+    if similarity_check(token_counter):
+        return []
+    
     # we have to avoid crawling low information, so maybe just has_low_information is enough
     if has_low_information(len(token_counter), len(page_tokens)):
-        return []
-
-    if similiarity_check(token_counter):
         return []
 
     additional_pages = check_sitemaps(url)
