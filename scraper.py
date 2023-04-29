@@ -28,12 +28,10 @@ def checksum(tokens):
             sum += ord(character)
     return sum
 
-def hash(tokens) -> int:
-    weights = Counter()
+def hash(weights) -> int:
     hashes = dict()
     combreversed = [0] * 256
     for token in tokens:
-        weights[token] += 1
         hashed = hashlib.sha256(token.encode())
         hashes[token] = hashed
     for k,v in hashes.items():
@@ -108,6 +106,9 @@ def tokenize_and_count(text, url) -> list[str]:
         largest_page = url
     return page_tokens
 
+def has_low_information(unique, length):
+    return unique / length < .2 if length > 0 else False
+
 def check_sitemaps(url):
     parsed = urlparse(url)
     domain = parsed.netloc
@@ -142,16 +143,21 @@ def extract_next_links(url, resp):
 
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
     text = parsed_html.get_text()
-
+    
+    next_urls = [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")]
     
     page_tokens = tokenize_and_count(text, url)
+    token_counter = Counter(page_tokens)
     
-    if similiarity_check(page_tokens):
+    if len(next_urls) < 1 and has_low_information(len(token_counter), len(page_tokens)):
+        return []
+
+    if similiarity_check(token_counter):
         return []
 
     additional_pages = check_sitemaps(url)
     
-    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")] + additional_pages
+    return next_urls + additional_pages
 
 
 
