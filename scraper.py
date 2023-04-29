@@ -130,7 +130,7 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
     # didn't get the page, so return empty list
-
+    print(resp.url)
     if resp.status != 200:
         print(resp.url, resp.error)
         return []
@@ -143,13 +143,15 @@ def extract_next_links(url, resp):
 
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
     text = parsed_html.get_text()
-    
-    next_urls = [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")]
+
+    if url.endswith('.xml'):
+        return [get_absolute_path(link.text, resp.url) for link in parsed_html.find_all("loc")]
     
     page_tokens = tokenize_and_count(text, url)
     token_counter = Counter(page_tokens)
     
-    if len(next_urls) < 1 and has_low_information(len(token_counter), len(page_tokens)):
+    # we have to avoid crawling low information, so maybe just has_low_information is enough
+    if has_low_information(len(token_counter), len(page_tokens)):
         return []
 
     if similiarity_check(token_counter):
@@ -157,7 +159,7 @@ def extract_next_links(url, resp):
 
     additional_pages = check_sitemaps(url)
     
-    return next_urls + additional_pages
+    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")] + additional_pages
 
 
 
