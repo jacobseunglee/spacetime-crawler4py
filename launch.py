@@ -12,11 +12,7 @@ def main(config_file, restart):
     config = Config(cparser)
     config.cache_server = get_cache_server(config, restart)
     crawler = Crawler(config, restart)
-    try:
-        crawler.start()
-    except:
-        wait()
-        crawler.start()
+    crawler.start()
 
 if __name__ == "__main__":
     parser = ArgumentParser()
