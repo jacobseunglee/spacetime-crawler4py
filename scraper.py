@@ -130,7 +130,7 @@ def extract_next_links(url, resp):
     # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
 
     # didn't get the page, so return empty list
-    print(resp.url)
+    
     if resp.status != 200:
         print(resp.url, resp.error)
         return []
@@ -141,6 +141,9 @@ def extract_next_links(url, resp):
         print(resp.url, "no content")
         return []
 
+    if not is_valid(resp.raw_response.url):
+        return []
+    
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
     text = parsed_html.get_text()
 
