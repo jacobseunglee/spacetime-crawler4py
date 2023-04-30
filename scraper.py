@@ -14,7 +14,7 @@ import os
 REPEATED_TRESH = 15
 
 robots = {}
-visited = {}
+visited = set()
 tokens = {}
 largest_page = ""
 largest_count = 0
@@ -25,7 +25,7 @@ prev_simhash = []
 
 def json_save():
     dictionary = {
-        "visited" : visited,
+        "visited" : list(visited),
         "tokens" : dict(tokens),
         "largest_page" : largest_page,
         "largest_count" : largest_count,
@@ -40,7 +40,7 @@ def load_saved_vars():
     with open("save.json", "r") as save:
         data = save.read()
         json_object = json.loads(data)
-        visited = json_object[visited]
+        visited = set(json_object[visited])
         tokens = json_object[tokens]
         largest_page = json_object[largest_page]
         largest_count = json_object[largest_count]
@@ -98,6 +98,7 @@ def determine_distance(target):
 def scraper(url, resp):
     if os.path("save.json").exists and visited == []:
         load_saved_vars()
+    visited.add(url)
     links = extract_next_links(url, resp)
     json_save()
     return [link for link in links if is_valid(link)]
@@ -285,18 +286,18 @@ def is_trap(url):
     same_count = Counter(path_list)
     if same_count.most_common(1)[0][1] > 3:
         return True
+    return False
+    # if base in visited:
+    #     visited[base] += 1
+    #     if visited[base] > REPEATED_TRESH:
+    #         return True
+    #     else:
+    #         return False
+    # else:
+    #     visited[base] = 1
+    #     return False
 
-    if base in visited:
-        visited[base] += 1
-        if visited[base] > REPEATED_TRESH:
-            return True
-        else:
-            return False
-    else:
-        visited[base] = 1
-        return False
-
-def subdomain_pages(urls: dict) -> None:
+def subdomain_pages(urls: set) -> None:
     subdomain_count = Counter()
     for url in urls:
         parsed = urlparse(url)
