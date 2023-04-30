@@ -306,7 +306,8 @@ def subdomain_pages(urls: dict) -> None:
     return subdomain_count
 
 def summary():
-    for token, freq in tokens.most_common(50):
+    tokens = [(k,v) for k, v in sorted(tokens.items(),key = lambda x: -1 * int(x[1]))]
+    for token, freq in tokens[:50]:
         print(token, freq)
     print(largest_page +": ", largest_count)
     subdomain_count = subdomain_pages(visited)
