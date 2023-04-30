@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse, urldefrag
+from urllib.parse import urlparse, urldefrag, urljoin
 from bs4 import BeautifulSoup
 from simhash import Simhash
 import nltk
@@ -267,20 +267,8 @@ If relative, make the conversion and return the path.
 If absolute, just return the path.
 '''
 def get_absolute_path(path: str, current_url: str) -> str:
-    # can an empty string be in the href?
-    if path == None:
-        path = ""
     path = urldefrag(path)[0]
-    parsed_path = urlparse(path)
-    # is absolute path
-    if parsed_path.scheme:
-        return path
-    # is partially absolute
-    elif parsed_path.netloc:
-        return "http" + path
-    # is relative
-    else:
-        return current_url.rstrip("/") + path
+    return urljoin(current_url, path)
     
 
 '''
