@@ -178,10 +178,6 @@ def extract_next_links(url, resp):
         return [] 
     if url != resp.raw_response.url: 
         return [resp.raw_response.url]
-
-
-    if not is_valid(resp.raw_response.url):
-        return []
     
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
     text = parsed_html.get_text()
