@@ -15,7 +15,7 @@ REPEATED_TRESH = 15
 
 robots = {}
 visited = {}
-tokens = {}}
+tokens = {}
 largest_page = ""
 largest_count = 0
 subdomain_count = Counter()
