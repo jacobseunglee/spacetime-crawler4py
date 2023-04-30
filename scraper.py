@@ -18,7 +18,6 @@ visited = {}
 tokens = {}
 largest_page = ""
 largest_count = 0
-subdomain_count = Counter()
 
 prev = []
 prev_simhash = []
@@ -297,20 +296,20 @@ def is_trap(url):
         visited[base] = 1
         return False
 
-def subdomain_pages(urls: set) -> None:
-    global subdomain_count
+def subdomain_pages(urls: dict) -> None:
+    subdomain_count = Counter()
     for url in urls:
         parsed = urlparse(url)
         domain = parsed.netloc
         if domain.endswith(".ics.uci.edu") and domain != "www.ics.uci.edu":
             subdomain_count[domain] += 1
-
+    return subdomain_count
 
 def summary():
     for token, freq in tokens.most_common(50):
         print(token, freq)
     print(largest_page +": ", largest_count)
-    subdomain_pages(visited)
+    subdomain_count = subdomain_pages(visited)
     print(sorted(subdomain_count.items()))
 
 
