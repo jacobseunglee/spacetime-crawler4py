@@ -92,10 +92,14 @@ def hash_distance(hash1, hash2):
 Just a helper for now, modify the integer after <=
 '''
 def determine_distance(target):
+    i = -1
     for prev in prev_simhash:
+        i += 1
         calc = hash_distance(prev, target)
         if calc <= 20:
+            print('------------- found similar simhash at i =', i, '-------------')
             return True
+    print('############## no similar simhash ##############')
     return False
 
 
@@ -112,6 +116,7 @@ def similarity_check(tokens) -> bool:
     cur_simhash = hash(tokens)
     # if len(prevsimhash) > 0 and any(hash_distance(x, cursimhash) <= 4 for x in prevsimhash):
     if any([cur == x for x in prev]):
+        print('---------- found same checksum -----------------')
         return True
     if len(prev_simhash) and determine_distance(cur_simhash):
         return True
