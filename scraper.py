@@ -37,15 +37,16 @@ def json_save():
         f.write(json_object)
 
 def load_saved_vars():
+    global visited, tokens, largest_page, largest_count, prev, prev_simhash
     with open("save.json", "r") as save:
         data = save.read()
         json_object = json.loads(data)
-        visited = set(json_object[visited])
-        tokens = json_object[tokens]
-        largest_page = json_object[largest_page]
-        largest_count = json_object[largest_count]
-        prev = json_object[prev]
-        prev_simhash = json_object[prev_simhash]
+        visited = set(json_object["visited"])
+        tokens = json_object["tokens"]
+        largest_page = json_object["largest_page"]
+        largest_count = json_object["largest_count"]
+        prev = json_object["prev"]
+        prev_simhash = json_object["prev_simhash"]
 
 def checksum(tokens):
     sum = 0
@@ -96,7 +97,7 @@ def determine_distance(target):
 
 
 def scraper(url, resp):
-    if os.path.exists("save.json") and visited == []:
+    if os.path.exists("save.json") and prev == []:
         load_saved_vars()
     visited.add(url)
     links = extract_next_links(url, resp)
