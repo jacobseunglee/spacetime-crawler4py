@@ -96,7 +96,7 @@ def determine_distance(target):
 
 
 def scraper(url, resp):
-    if os.path("save.json").exists and visited == []:
+    if os.path.exists("save.json") and visited == []:
         load_saved_vars()
     visited.add(url)
     links = extract_next_links(url, resp)
