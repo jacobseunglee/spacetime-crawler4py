@@ -11,7 +11,7 @@ import hashlib
 import json
 import os
 
-REPEATED_TRESH = 15
+REPEATED_THRESH = 15
 
 robots = {}
 visited = set()
@@ -21,6 +21,7 @@ largest_count = 0
 
 prev = []
 prev_simhash = []
+visit_count = {}
 
 
 def json_save():
@@ -30,14 +31,15 @@ def json_save():
         "largest_page" : largest_page,
         "largest_count" : largest_count,
         "prev" : prev,
-        "prev_simhash" : prev_simhash
+        "prev_simhash" : prev_simhash,
+        "visit_count" : visit_count
     }
     json_object = json.dumps(dictionary, indent=4)
     with open("save.json", "w") as f:
         f.write(json_object)
 
 def load_saved_vars():
-    global visited, tokens, largest_page, largest_count, prev, prev_simhash
+    global visited, tokens, largest_page, largest_count, prev, prev_simhash, visit_count
     with open("save.json", "r") as save:
         data = save.read()
         json_object = json.loads(data)
@@ -47,6 +49,7 @@ def load_saved_vars():
         largest_count = json_object["largest_count"]
         prev = json_object["prev"]
         prev_simhash = json_object["prev_simhash"]
+        visit_count = json_object["visit_count"]
 
 def checksum(tokens):
     sum = 0
@@ -148,7 +151,8 @@ def check_sitemaps(url):
     if domain not in robots:
         robotparse = robotparser.RobotFileParser(parsed.scheme + "://" + domain + "/robots.txt")
         robotparse.read()
-        return robotparse.site_maps()
+        ret = robotparse.site_maps()
+        return ret if ret else []
     return []
 
 def extract_next_links(url, resp):
@@ -177,7 +181,7 @@ def extract_next_links(url, resp):
     elif resp.status == 200 and resp.raw_response.content is None:
         print(resp.url, "no content")
         return [] 
-    if url != resp.raw_response.url: 
+    if url != resp.raw_response.url.rstrip("/"): 
         return [resp.raw_response.url]
     
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
@@ -244,7 +248,10 @@ def is_valid(url):
         if robotparse and not robotparse.can_fetch("*", url):
             return False
         
-        if is_trap(url):
+        if is_query_trap(url):
+            return False
+        
+        if is_recursive_trap(url):
             return False
 
         return not re.match(
@@ -274,7 +281,7 @@ def get_absolute_path(path: str, current_url: str) -> str:
 '''
 Check url pattern to make sure does not lead to a trap
 '''
-def is_trap(url):
+def is_recursive_trap(url):
     parsed = urlparse(url)
     base = parsed.scheme + '://' + parsed.netloc + parsed.path
     path_list = parsed.path.split("/")
@@ -282,15 +289,15 @@ def is_trap(url):
     if same_count.most_common(1)[0][1] > 3:
         return True
     return False
-    # if base in visited:
-    #     visited[base] += 1
-    #     if visited[base] > REPEATED_TRESH:
-    #         return True
-    #     else:
-    #         return False
-    # else:
-    #     visited[base] = 1
-    #     return False
+
+def is_query_trap(url):
+    global visit_count
+    parsed = urlparse(url)
+    base = parsed.scheme + '://' + parsed.netloc + parsed.path
+    if base not in visit_count:
+        visit_count[base] = 0
+    visit_count[base] = int(visit_count[base]) + 1
+    return visit_count[base] > REPEATED_THRESH
 
 def subdomain_pages(urls: set) -> None:
     subdomain_count = Counter()
