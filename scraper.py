@@ -128,7 +128,10 @@ def tokenize_and_count(text, url) -> list[str]:
     for w in page_tokens:
         if w not in stop_words:
             word_count += 1
-            tokens[w] = int(tokens[w]) + 1
+            if w not in tokens:
+                tokens[w] = 1
+            else:
+                tokens[w] = int(tokens[w]) + 1
 
     if word_count > largest_count:
         largest_count = word_count 
