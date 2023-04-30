@@ -8,18 +8,45 @@ from nltk.corpus import stopwords
 from nltk.tokenize import RegexpTokenizer
 from urllib import robotparser
 import hashlib
+import json
+import os
 
 REPEATED_TRESH = 15
 
 robots = {}
 visited = {}
-tokens = Counter()
+tokens = {}}
 largest_page = ""
 largest_count = 0
 subdomain_count = Counter()
 
 prev = []
 prev_simhash = []
+
+
+def json_save():
+    dictionary = {
+        "visited" : visited,
+        "tokens" : dict(tokens),
+        "largest_page" : largest_page,
+        "largest_count" : largest_count,
+        "prev" : prev,
+        "prev_simhash" : prev_simhash
+    }
+    json_object = json.dumps(dictionary, indent=4)
+    with open("save.json", "w") as f:
+        f.write(json_object)
+
+def load_saved_vars():
+    with open("save.json", "r") as save:
+        data = save.read()
+        json_object = json.loads(data)
+        visited = json_object[visited]
+        tokens = json_object[tokens]
+        largest_page = json_object[largest_page]
+        largest_count = json_object[largest_count]
+        prev = json_object[prev]
+        prev_simhash = json_object[prev_simhash]
 
 def checksum(tokens):
     sum = 0
@@ -70,7 +97,10 @@ def determine_distance(target):
 
 
 def scraper(url, resp):
+    if os.path("save.json").exists and visited == []:
+        load_saved_vars()
     links = extract_next_links(url, resp)
+    json_save()
     return [link for link in links if is_valid(link)]
    
 def similarity_check(tokens) -> bool:
@@ -98,7 +128,7 @@ def tokenize_and_count(text, url) -> list[str]:
     for w in page_tokens:
         if w not in stop_words:
             word_count += 1
-            tokens[w] += 1
+            tokens[w] = int(tokens[w]) + 1
 
     if word_count > largest_count:
         largest_count = word_count 
