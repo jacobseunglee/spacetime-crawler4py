@@ -11,7 +11,7 @@ import hashlib
 import json
 import os
 
-REPEATED_THRESH = 15
+REPEATED_THRESH = 26
 
 robots = {}
 visited = set()
