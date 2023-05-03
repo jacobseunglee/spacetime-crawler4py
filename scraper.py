@@ -253,10 +253,10 @@ def is_valid(url):
         if robotparse and not robotparse.can_fetch("*", url):
             return False
         
-        if is_query_trap(url):
+        if is_query_trap(parsed):
             return False
         
-        if is_recursive_trap(url):
+        if is_recursive_trap(parsed):
             return False
 
         return not re.match(
@@ -286,18 +286,15 @@ def get_absolute_path(path: str, current_url: str) -> str:
 '''
 Check url pattern to make sure does not lead to a trap
 '''
-def is_recursive_trap(url):
-    parsed = urlparse(url)
-    base = parsed.scheme + '://' + parsed.netloc + parsed.path
+def is_recursive_trap(parsed):
     path_list = parsed.path.split("/")
     same_count = Counter(path_list)
     if same_count.most_common(1)[0][1] > 3:
         return True
     return False
 
-def is_query_trap(url):
+def is_query_trap(parsed):
     global visit_count
-    parsed = urlparse(url)
     base = parsed.scheme + '://' + parsed.netloc + parsed.path
     if base not in visit_count:
         visit_count[base] = 0
