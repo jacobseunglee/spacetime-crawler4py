@@ -23,6 +23,9 @@ prev = []
 prev_simhash = []
 visit_count = {}
 
+past_sitemaps = []
+valid_page_count = 0
+
 
 def json_save():
     dictionary = {
@@ -32,14 +35,16 @@ def json_save():
         "largest_count" : largest_count,
         "prev" : prev,
         "prev_simhash" : prev_simhash,
-        "visit_count" : visit_count
+        "visit_count" : visit_count,
+        "past_sitemaps": past_sitemaps,
+        "valid_page_count": valid_page_count
     }
     json_object = json.dumps(dictionary, indent=4)
     with open("save.json", "w") as f:
         f.write(json_object)
 
 def load_saved_vars():
-    global visited, tokens, largest_page, largest_count, prev, prev_simhash, visit_count
+    global visited, tokens, largest_page, largest_count, prev, prev_simhash, visit_count, past_sitemaps, valid_page_count
     with open("save.json", "r") as save:
         data = save.read()
         json_object = json.loads(data)
@@ -50,6 +55,8 @@ def load_saved_vars():
         prev = json_object["prev"]
         prev_simhash = json_object["prev_simhash"]
         visit_count = json_object["visit_count"]
+        past_sitemaps = json_object["past_sitemaps"]
+        valid_page_count = json_object["valid_page_count"]
 
 def checksum(tokens):
     sum = 0
@@ -173,6 +180,8 @@ def extract_next_links(url, resp):
 
     # didn't get the page, so return empty list
 
+    global valid_page_count
+
     if resp.status >300 and resp.status < 310:
          print("****", resp.url, "***", resp.raw_response.url)
          if is_valid(resp.raw_response.url):
@@ -187,13 +196,15 @@ def extract_next_links(url, resp):
         print(resp.url, "no content")
         return [] 
     if url != resp.raw_response.url.rstrip("/"): 
+        print('******* possible redirect found **************')
         return [resp.raw_response.url]
     
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
     text = parsed_html.get_text()
 
     if url.endswith('.xml'):
-        return [get_absolute_path(link.text, resp.raw_response.url) for link in parsed_html.find_all("loc")]
+        valid_page_count += 1
+        return [get_absolute_path(link.text, resp.url) for link in parsed_html.find_all("loc")]
     
     page_tokens = tokenize_and_count(text, url)
     token_counter = Counter(page_tokens)
@@ -207,7 +218,8 @@ def extract_next_links(url, resp):
 
     additional_pages = check_sitemaps(url)
     
-    return [get_absolute_path(link.get("href"), resp.raw_response.url) for link in parsed_html.find_all("a")] + additional_pages
+    valid_page_count += 1
+    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")] + additional_pages
 
 
 
