@@ -11,7 +11,7 @@ import hashlib
 import json
 import os
 
-REPEATED_THRESH = 26
+REPEATED_THRESH = 21
 
 robots = {}
 visited = set()
@@ -61,7 +61,7 @@ def checksum(tokens):
 def hash(weights) -> int:
     hashes = dict()
     combreversed = [0] * 256
-    for token in tokens:
+    for token in weights:
         hashed = hashlib.sha256(token.encode())
         hashes[token] = hashed
     for k,v in hashes.items():
@@ -113,11 +113,11 @@ def scraper(url, resp):
    
 def similarity_check(tokens) -> bool:
     cur = checksum(tokens)
-    cur_simhash = hash(tokens)
     # if len(prevsimhash) > 0 and any(hash_distance(x, cursimhash) <= 4 for x in prevsimhash):
     if any([cur == x for x in prev]):
         print('---------- found same checksum -----------------')
         return True
+    cur_simhash = hash(tokens)
     if len(prev_simhash) and determine_distance(cur_simhash):
         return True
     prev_simhash.append(cur_simhash)
@@ -127,7 +127,7 @@ def similarity_check(tokens) -> bool:
 def tokenize_and_count(text, url) -> list[str]:
     global largest_count, largest_page
 
-    tokenizer = RegexpTokenizer(r'\w+')
+    tokenizer = RegexpTokenizer(r'\w{2,}')
     page_tokens = tokenizer.tokenize(text.lower())
     #pageTokens = nltk.word_tokenize(text)
     stop_words = set(stopwords.words('english'))
@@ -193,7 +193,7 @@ def extract_next_links(url, resp):
     text = parsed_html.get_text()
 
     if url.endswith('.xml'):
-        return [get_absolute_path(link.text, resp.url) for link in parsed_html.find_all("loc")]
+        return [get_absolute_path(link.text, resp.raw_response.url) for link in parsed_html.find_all("loc")]
     
     page_tokens = tokenize_and_count(text, url)
     token_counter = Counter(page_tokens)
@@ -207,7 +207,7 @@ def extract_next_links(url, resp):
 
     additional_pages = check_sitemaps(url)
     
-    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")] + additional_pages
+    return [get_absolute_path(link.get("href"), resp.raw_response.url) for link in parsed_html.find_all("a")] + additional_pages
 
 
 
@@ -315,7 +315,7 @@ def subdomain_pages(urls: set) -> None:
 
 def summary():
     max_tokens = [(k,v) for k, v in sorted(tokens.items(),key = lambda x: -1 * int(x[1]))]
-    for token, freq in max_tokens[:50]:
+    for token, freq in max_tokens[:100]:
         print(token, freq)
     print(largest_page +": ", largest_count)
     subdomain_count = subdomain_pages(visited)
