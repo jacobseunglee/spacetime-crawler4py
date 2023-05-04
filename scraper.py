@@ -160,7 +160,8 @@ def has_low_information(unique, length):
 def check_sitemaps(url):
     parsed = urlparse(url)
     domain = parsed.netloc
-    if domain not in robots:
+    if domain not in past_sitemaps:
+        past_sitemaps.append(domain)
         robotparse = robotparser.RobotFileParser(parsed.scheme + "://" + domain + "/robots.txt")
         robotparse.read()
         ret = robotparse.site_maps()
