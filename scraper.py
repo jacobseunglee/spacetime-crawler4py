@@ -202,9 +202,9 @@ def extract_next_links(url, resp):
     
     parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
     text = parsed_html.get_text()
+    valid_page_count += 1
 
     if url.endswith('.xml'):
-        valid_page_count += 1
         return [get_absolute_path(link.text, resp.raw_response.url) for link in parsed_html.find_all("loc")]
     
     page_tokens = tokenize_and_count(text, url)
@@ -219,7 +219,6 @@ def extract_next_links(url, resp):
 
     additional_pages = check_sitemaps(url)
     
-    valid_page_count += 1
     return [get_absolute_path(link.get("href"), resp.raw_response.url) for link in parsed_html.find_all("a")] + additional_pages
 
 
@@ -328,6 +327,7 @@ def summary():
     for token, freq in max_tokens[:150]:
         print(token, freq)
     print(largest_page +": ", largest_count)
+    print('number of valid pages:', valid_page_count)
     subdomain_count = subdomain_pages(visited)
     print(sorted(subdomain_count.items()))
 
