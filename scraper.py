@@ -155,7 +155,7 @@ def tokenize_and_count(text, url) -> list[str]:
     return page_tokens
 
 def has_low_information(unique, length):
-    return unique / length < .2 if length > 0 else False
+    return (unique / length < .25 or unique / length >= 0.8) if length > 0 else False
 
 def check_sitemaps(url):
     parsed = urlparse(url)
@@ -205,7 +205,7 @@ def extract_next_links(url, resp):
 
     if url.endswith('.xml'):
         valid_page_count += 1
-        return [get_absolute_path(link.text, resp.url) for link in parsed_html.find_all("loc")]
+        return [get_absolute_path(link.text, resp.raw_response.url) for link in parsed_html.find_all("loc")]
     
     page_tokens = tokenize_and_count(text, url)
     token_counter = Counter(page_tokens)
@@ -220,7 +220,7 @@ def extract_next_links(url, resp):
     additional_pages = check_sitemaps(url)
     
     valid_page_count += 1
-    return [get_absolute_path(link.get("href"), resp.url) for link in parsed_html.find_all("a")] + additional_pages
+    return [get_absolute_path(link.get("href"), resp.raw_response.url) for link in parsed_html.find_all("a")] + additional_pages
 
 
 
@@ -311,7 +311,7 @@ def is_query_trap(parsed):
     base = parsed.scheme + '://' + parsed.netloc + parsed.path
     if base not in visit_count:
         visit_count[base] = 0
-    visit_count[base] = int(visit_count[base]) + 1
+    visit_count[base] = visit_count[base] + 1
     return visit_count[base] > REPEATED_THRESH
 
 def subdomain_pages(urls: set) -> None:
@@ -324,17 +324,10 @@ def subdomain_pages(urls: set) -> None:
     return subdomain_count
 
 def summary():
-    max_tokens = [(k,v) for k, v in sorted(tokens.items(),key = lambda x: -1 * int(x[1])) if not re.match('^\d+$', k)]
+    max_tokens = [(k,v) for k, v in sorted(tokens.items(),key = lambda x: -1 * x[1]) if not re.match('^\d+$', k)]
     for token, freq in max_tokens[:150]:
         print(token, freq)
     print(largest_page +": ", largest_count)
     subdomain_count = subdomain_pages(visited)
     print(sorted(subdomain_count.items()))
 
-
-def sitemaps(robotParser):
-    if robotParser.site_maps() != None:
-        return robotParser.site_maps()
-    else:
-        return []
-    
