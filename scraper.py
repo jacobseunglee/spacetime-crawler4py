@@ -173,7 +173,7 @@ def similarity_check(tokens) -> bool:
 def tokenize_and_count(text, url) -> list[str]:
     '''
     Given the url and textual content of a page, return a list of all
-    the tokens of that page.
+    the tokens of that page of length 2 or more.
     '''
     global largest_count, largest_page
 
@@ -294,12 +294,21 @@ def extract_next_links(url, resp):
 
 
 def in_domain_scope(parsed):
+    '''
+    Given a prased url make sure it is a domain that we want to serach 
+    return true if it is else return false
+    '''
     for domain in [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]:
         if parsed.netloc.endswith(domain):
             return True
     return False
 
 def check_robots(parsed):
+    '''
+    given a parsed link if a new domain is reached update the robots dict to include 
+    the robot dict for the domain. 
+    returns the robot object if one exits else none
+    '''
     # disallowed robots.txt urls/paths
     domain = parsed.netloc
     if domain not in robots:
@@ -360,6 +369,9 @@ If relative, make the conversion and return the path.
 If absolute, just return the path.
 '''
 def get_absolute_path(path: str, current_url: str) -> str:
+    '''
+    given a path and url properly merge into one absolute link 
+    '''
     path = urldefrag(path)[0]
     return urljoin(current_url, path)
     
@@ -368,6 +380,10 @@ def get_absolute_path(path: str, current_url: str) -> str:
 Check url pattern to make sure does not lead to a trap
 '''
 def is_recursive_trap(parsed):
+    '''
+    Given a parsed link check to make sure it is not a trap by repating directories in the path
+    returns true if trap else false 
+    '''
     path_list = parsed.path.split("/")
     same_count = Counter(path_list)
     if same_count.most_common(1)[0][1] > 3:
@@ -375,6 +391,11 @@ def is_recursive_trap(parsed):
     return False
 
 def is_query_trap(parsed):
+    '''
+    Given a parsed link check to make sure not stuck in a dynamic page by 
+    checking to make sure the nuber or links geneated by queries from one page does not exceed REPEATED_THRESH
+    returns true if trap else false
+    '''
     global visit_count
     base = parsed.scheme + '://' + parsed.netloc + parsed.path
     if base not in visit_count:
@@ -382,7 +403,12 @@ def is_query_trap(parsed):
     visit_count[base] = visit_count[base] + 1
     return visit_count[base] > REPEATED_THRESH
 
-def subdomain_pages(urls: set) -> None:
+def subdomain_pages(urls: set) -> Counter:
+    '''
+    given a set of all urls visited populate a counter for number of urls visited
+    for every subdomain in ics.uci.edu. 
+    return the subdomin_count counter   
+    '''
     subdomain_count = Counter()
     for url in urls:
         parsed = urlparse(url)
@@ -392,6 +418,13 @@ def subdomain_pages(urls: set) -> None:
     return subdomain_count
 
 def summary():
+    '''
+    prints out relvant information at the end of the crawl including: 
+    150 most common words seen through out all pages 
+    the largest page and its token count 
+    the number of valid pages reached by the crawler 
+    all the subdomains and their counts of ics.uci.edu
+    '''
     max_tokens = [(k,v) for k, v in sorted(tokens.items(),key = lambda x: -1 * x[1]) if not re.match('^\d+$', k)]
     for token, freq in max_tokens[:150]:
         print(token, freq)
