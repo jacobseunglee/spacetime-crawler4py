@@ -13,21 +13,33 @@ import os
 
 REPEATED_THRESH = 21
 
-robots = {}
+# dictionary to parse robots.txt pages - {domain : RobotFileParser}
+robots = {} 
+# set of visited pages
 visited = set()
+# Counter of tokens
 tokens = {}
+# the longest page in terms of number of words/tokens
 largest_page = ""
+# the number of words/tokens of the longest page
 largest_count = 0
 
+# record of checksums of visited pages
 prev = []
+# record of simhashes of visited pages
 prev_simhash = []
+# counter for how many times we visited a page (excluding queries + fragments)
 visit_count = {}
-
+# record of domains where its sitemaps were visited
 past_sitemaps = []
+# number of pages that were "valid" - that returned status code 200 and weren't redirects
 valid_page_count = 0
 
 
 def json_save():
+    '''
+    Save global variables into a json file
+    '''
     dictionary = {
         "visited" : list(visited),
         "tokens" : dict(tokens),
@@ -44,6 +56,9 @@ def json_save():
         f.write(json_object)
 
 def load_saved_vars():
+    '''
+    Load global variables by using data stored in json file
+    '''
     global visited, tokens, largest_page, largest_count, prev, prev_simhash, visit_count, past_sitemaps, valid_page_count
     with open("save.json", "r") as save:
         data = save.read()
@@ -59,6 +74,10 @@ def load_saved_vars():
         valid_page_count = json_object["valid_page_count"]
 
 def checksum(tokens):
+    '''
+    Given the tokens of a page, calculate checksum of a page by
+    adding the ASCII code of every character in the page.
+    '''
     sum = 0
     for token in tokens:
         for character in token:
@@ -66,8 +85,12 @@ def checksum(tokens):
     return sum
 
 def hash(weights) -> int:
+    '''
+    Given a dictionary that stores how many times each token appeared in a page,
+    calculate the simhash value of the page.
+    '''
     hashes = dict()
-    combreversed = [0] * 256
+    combreversed = [0] * 256 # result of hash would be 256 bits
     for token in weights:
         hashed = hashlib.sha256(token.encode())
         hashes[token] = hashed
@@ -92,13 +115,18 @@ def hash(weights) -> int:
     return simhash_value
 
 def hash_distance(hash1, hash2):
+    '''
+    Given two simhash values, calculate the distance between the two
+    '''
     return bin(hash1 ^ hash2).count('1')
 
 
-'''
-Just a helper for now, modify the integer after <=
-'''
 def determine_distance(target):
+    '''
+    Given a simhash value of page, iterate through the simhash values
+    of pages visited previously. Return True if there a page with a simhash 
+    value with a distance <= 20.
+    '''
     i = -1
     for prev in prev_simhash:
         i += 1
@@ -111,6 +139,11 @@ def determine_distance(target):
 
 
 def scraper(url, resp):
+    '''
+    Given a url and the response from a get request to the url,
+    scrape the page corresponding to the url and return a list of
+    valid links the page has.
+    '''
     if os.path.exists("save.json") and prev == []:
         load_saved_vars()
     visited.add(url)
@@ -119,27 +152,40 @@ def scraper(url, resp):
     return [link for link in links if is_valid(link)]
    
 def similarity_check(tokens) -> bool:
+    '''
+    Given a list of a page's tokens, check if we previously visited a page
+    similar to the one we are checking. Return True if a similar page was found.
+    '''
+    # checksum method - exact similarity
     cur = checksum(tokens)
-    # if len(prevsimhash) > 0 and any(hash_distance(x, cursimhash) <= 4 for x in prevsimhash):
     if any([cur == x for x in prev]):
         print('---------- found same checksum -----------------')
         return True
+    # simhash method - near similarity
     cur_simhash = hash(tokens)
     if len(prev_simhash) and determine_distance(cur_simhash):
         return True
+    
     prev_simhash.append(cur_simhash)
     prev.append(cur)
     return False 
    
 def tokenize_and_count(text, url) -> list[str]:
+    '''
+    Given the url and textual content of a page, return a list of all
+    the tokens of that page.
+    '''
     global largest_count, largest_page
 
+    # we defined a token to be any alphanumeric sequence of length 2 or more
     tokenizer = RegexpTokenizer(r'\w{2,}')
     page_tokens = tokenizer.tokenize(text.lower())
-    #pageTokens = nltk.word_tokenize(text)
+
+    # words we do not want to keep track of in the global tokens counter
     stop_words = set(stopwords.words('english'))
     punctuation = {",",".","{","}","[","]","|","(",")","<",">"}
     stop_words = stop_words.union(punctuation)
+
     word_count = len(page_tokens)
     for w in page_tokens:
         if w not in stop_words:
@@ -148,15 +194,25 @@ def tokenize_and_count(text, url) -> list[str]:
             else:
                 tokens[w] = tokens[w] + 1
 
+    # update largest page and size of largest page
     if word_count > largest_count:
         largest_count = word_count 
         largest_page = url
     return page_tokens
 
 def has_low_information(unique, length):
+    '''
+    Given a set of unqiue tokens and the total number of tokens of a page,
+    determine if a page has low information.
+    '''
     return (unique / length < .25 or unique / length >= 0.8) if length > 0 else False
 
 def check_sitemaps(url):
+    '''
+    Given a url of a page, check if the sitemaps of the url's domain is visited.
+    If visited, return empty list. 
+    If not, return list of sitemaps in the domain's robots.txt file.
+    '''
     parsed = urlparse(url)
     domain = parsed.netloc
     if domain not in past_sitemaps:
@@ -182,40 +238,54 @@ def extract_next_links(url, resp):
 
     global valid_page_count
 
+    # first method of checking redirect
+    # return the page that we are redirected to crawl later
     if resp.status >300 and resp.status < 310:
          print("****", resp.url, "***", resp.raw_response.url)
          if is_valid(resp.raw_response.url):
             return [resp.raw_response.url]
+        
+    # if the status code is not 200, we did not successfully get the page
+    # do not crawl the page
     if resp.status != 200:
         print(resp.url, resp.error)
         return []
+    # if there was no valid response, do not crawl the page
     elif not resp.raw_response:
         print(resp.url, "none response")
         return []
+    # if there is a response but no content in the response, do not crawl the page
     elif resp.status == 200 and resp.raw_response.content is None:
         print(resp.url, "no content")
         return [] 
+    
+    # second method of checking redirect
+    # 
     if url != resp.raw_response.url.rstrip("/"): 
         print('******* possible redirect found **************')
         return [resp.raw_response.url]
     
-    parsed_html = BeautifulSoup(resp.raw_response.content, "lxml")
+    parsed_html = BeautifulSoup(resp.raw_response.content, "lxml") # parse the content of response
     text = parsed_html.get_text()
     valid_page_count += 1
 
+    # if the page was a sitemap
     if url.endswith('.xml'):
         return [get_absolute_path(link.text, resp.raw_response.url) for link in parsed_html.find_all("loc")]
     
     page_tokens = tokenize_and_count(text, url)
     token_counter = Counter(page_tokens)
     
+    # check exact/near similarity with pages previously visited
+    # do not crawl the page if an exact/near similarity is detected
     if similarity_check(token_counter):
         return []
     
-    # we have to avoid crawling low information, so maybe just has_low_information is enough
+    # if the page has low information value, do not crawl the page
     if has_low_information(len(token_counter), len(page_tokens)):
         return []
 
+    # check if the sitemaps of the page's domain has been visited
     additional_pages = check_sitemaps(url)
     
     return [get_absolute_path(link.get("href"), resp.raw_response.url) for link in parsed_html.find_all("a")] + additional_pages
