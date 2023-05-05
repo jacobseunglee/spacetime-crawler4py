@@ -36,7 +36,7 @@ past_sitemaps = []
 valid_page_count = 0
 
 
-def json_save():
+def json_save() -> None:
     '''
     Save global variables into a json file
     '''
@@ -55,7 +55,7 @@ def json_save():
     with open("save.json", "w") as f:
         f.write(json_object)
 
-def load_saved_vars():
+def load_saved_vars() -> None:
     '''
     Load global variables by using data stored in json file
     '''
@@ -73,7 +73,7 @@ def load_saved_vars():
         past_sitemaps = json_object["past_sitemaps"]
         valid_page_count = json_object["valid_page_count"]
 
-def checksum(tokens):
+def checksum(tokens) -> int:
     '''
     Given the tokens of a page, calculate checksum of a page by
     adding the ASCII code of every character in the page.
@@ -114,14 +114,14 @@ def hash(weights) -> int:
             simhash_value *= 2
     return simhash_value
 
-def hash_distance(hash1, hash2):
+def hash_distance(hash1, hash2) -> int:
     '''
     Given two simhash values, calculate the distance between the two
     '''
     return bin(hash1 ^ hash2).count('1')
 
 
-def determine_distance(target):
+def determine_distance(target) -> bool:
     '''
     Given a simhash value of page, iterate through the simhash values
     of pages visited previously. Return True if there a page with a simhash 
@@ -138,7 +138,7 @@ def determine_distance(target):
     return False
 
 
-def scraper(url, resp):
+def scraper(url, resp) -> list[str]:
     '''
     Given a url and the response from a get request to the url,
     scrape the page corresponding to the url and return a list of
@@ -207,7 +207,7 @@ def has_low_information(unique, length):
     '''
     return (unique / length < .25 or unique / length >= 0.8) if length > 0 else False
 
-def check_sitemaps(url):
+def check_sitemaps(url) -> list[robotparser.RobotFileParser]:
     '''
     Given a url of a page, check if the sitemaps of the url's domain is visited.
     If visited, return empty list. 
@@ -223,7 +223,7 @@ def check_sitemaps(url):
         return ret if ret else []
     return []
 
-def extract_next_links(url, resp):
+def extract_next_links(url, resp) -> list[str]:
     # Implementation required.
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
@@ -293,7 +293,7 @@ def extract_next_links(url, resp):
 
 
 
-def in_domain_scope(parsed):
+def in_domain_scope(parsed) -> bool:
     '''
     Given a prased url make sure it is a domain that we want to serach 
     return true if it is else return false
@@ -303,7 +303,7 @@ def in_domain_scope(parsed):
             return True
     return False
 
-def check_robots(parsed):
+def check_robots(parsed) -> robotparser.RobotFileParser:
     '''
     given a parsed link if a new domain is reached update the robots dict to include 
     the robot dict for the domain. 
@@ -323,7 +323,7 @@ def check_robots(parsed):
     else:
         return robots[domain]
 
-def is_valid(url):
+def is_valid(url) -> bool:
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # There are already some conditions that return False.
@@ -379,7 +379,7 @@ def get_absolute_path(path: str, current_url: str) -> str:
 '''
 Check url pattern to make sure does not lead to a trap
 '''
-def is_recursive_trap(parsed):
+def is_recursive_trap(parsed) -> bool:
     '''
     Given a parsed link check to make sure it is not a trap by repating directories in the path
     returns true if trap else false 
@@ -390,7 +390,7 @@ def is_recursive_trap(parsed):
         return True
     return False
 
-def is_query_trap(parsed):
+def is_query_trap(parsed) -> bool:
     '''
     Given a parsed link check to make sure not stuck in a dynamic page by 
     checking to make sure the nuber or links geneated by queries from one page does not exceed REPEATED_THRESH
@@ -417,7 +417,7 @@ def subdomain_pages(urls: set) -> Counter:
             subdomain_count[domain] += 1
     return subdomain_count
 
-def summary():
+def summary() -> None:
     '''
     prints out relvant information at the end of the crawl including: 
     150 most common words seen through out all pages 
