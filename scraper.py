@@ -1,7 +1,6 @@
 import re
-from urllib.parse import urlparse, urldefrag, urljoin
+from urllib.parse import urlparse, urldefrag, urljoin, ParseResult
 from bs4 import BeautifulSoup
-from simhash import Simhash
 import nltk
 from collections import Counter
 from nltk.corpus import stopwords
@@ -10,6 +9,7 @@ from urllib import robotparser
 import hashlib
 import json
 import os
+from utils.response import Response
 
 REPEATED_THRESH = 21
 
@@ -73,7 +73,7 @@ def load_saved_vars() -> None:
         past_sitemaps = json_object["past_sitemaps"]
         valid_page_count = json_object["valid_page_count"]
 
-def checksum(tokens) -> int:
+def checksum(tokens: Counter[str, int]) -> int:
     '''
     Given the tokens of a page, calculate checksum of a page by
     adding the ASCII code of every character in the page.
@@ -84,9 +84,9 @@ def checksum(tokens) -> int:
             sum += ord(character)
     return sum
 
-def hash(weights) -> int:
+def hash(weights: Counter[str, int]) -> int:
     '''
-    Given a dictionary that stores how many times each token appeared in a page,
+    Given a Counter that stores how many times each token appeared in a page,
     calculate the simhash value of the page.
     '''
     hashes = dict()
@@ -114,14 +114,14 @@ def hash(weights) -> int:
             simhash_value *= 2
     return simhash_value
 
-def hash_distance(hash1, hash2) -> int:
+def hash_distance(hash1: int, hash2: int) -> int:
     '''
     Given two simhash values, calculate the distance between the two
     '''
     return bin(hash1 ^ hash2).count('1')
 
 
-def determine_distance(target) -> bool:
+def determine_distance(target: int) -> bool:
     '''
     Given a simhash value of page, iterate through the simhash values
     of pages visited previously. Return True if there a page with a simhash 
@@ -138,7 +138,7 @@ def determine_distance(target) -> bool:
     return False
 
 
-def scraper(url, resp) -> list[str]:
+def scraper(url: str, resp: Response) -> list[str]:
     '''
     Given a url and the response from a get request to the url,
     scrape the page corresponding to the url and return a list of
@@ -151,7 +151,7 @@ def scraper(url, resp) -> list[str]:
     json_save()
     return [link for link in links if is_valid(link)]
    
-def similarity_check(tokens) -> bool:
+def similarity_check(tokens: Counter[str, int]) -> bool:
     '''
     Given a list of a page's tokens, check if we previously visited a page
     similar to the one we are checking. Return True if a similar page was found.
@@ -170,7 +170,7 @@ def similarity_check(tokens) -> bool:
     prev.append(cur)
     return False 
    
-def tokenize_and_count(text, url) -> list[str]:
+def tokenize_and_count(text: str, url: str) -> list[str]:
     '''
     Given the url and textual content of a page, return a list of all
     the tokens of that page of length 2 or more.
@@ -200,14 +200,14 @@ def tokenize_and_count(text, url) -> list[str]:
         largest_page = url
     return page_tokens
 
-def has_low_information(unique, length):
+def has_low_information(unique: int, length: int) -> bool:
     '''
-    Given a set of unqiue tokens and the total number of tokens of a page,
+    Given the number of unqiue tokens and the total number of tokens of a page,
     determine if a page has low information.
     '''
     return (unique / length < .25 or unique / length >= 0.8) if length > 0 else False
 
-def check_sitemaps(url) -> list[robotparser.RobotFileParser]:
+def check_sitemaps(url: str) -> list[robotparser.RobotFileParser]:
     '''
     Given a url of a page, check if the sitemaps of the url's domain is visited.
     If visited, return empty list. 
@@ -223,8 +223,7 @@ def check_sitemaps(url) -> list[robotparser.RobotFileParser]:
         return ret if ret else []
     return []
 
-def extract_next_links(url, resp) -> list[str]:
-    # Implementation required.
+def extract_next_links(url: str, resp: Response) -> list[str]:
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
     # resp.status: the status code returned by the server. 200 is OK, you got the page. Other numbers mean that there was some kind of problem.
@@ -293,9 +292,9 @@ def extract_next_links(url, resp) -> list[str]:
 
 
 
-def in_domain_scope(parsed) -> bool:
+def in_domain_scope(parsed: ParseResult) -> bool:
     '''
-    Given a prased url make sure it is a domain that we want to serach 
+    Given a parsed url make sure it is a domain that we want to search 
     return true if it is else return false
     '''
     for domain in [".ics.uci.edu", ".cs.uci.edu", ".informatics.uci.edu", ".stat.uci.edu"]:
@@ -303,11 +302,11 @@ def in_domain_scope(parsed) -> bool:
             return True
     return False
 
-def check_robots(parsed) -> robotparser.RobotFileParser:
+def check_robots(parsed: ParseResult) -> robotparser.RobotFileParser:
     '''
-    given a parsed link if a new domain is reached update the robots dict to include 
-    the robot dict for the domain. 
-    returns the robot object if one exits else none
+    Given a parsed link if a new domain is reached update the robots dict to include 
+    the RobotFileParser for the new domain. 
+    Returns the RobotFileParser object if one exists else returns None
     '''
     # disallowed robots.txt urls/paths
     domain = parsed.netloc
@@ -323,10 +322,9 @@ def check_robots(parsed) -> robotparser.RobotFileParser:
     else:
         return robots[domain]
 
-def is_valid(url) -> bool:
+def is_valid(url: str) -> bool:
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
-    # There are already some conditions that return False.
 
     global robots
 
@@ -363,26 +361,21 @@ def is_valid(url) -> bool:
         print ("TypeError for ", parsed)
         raise
 
-'''
-Check the given url, see if its relative or absolute path.
-If relative, make the conversion and return the path.
-If absolute, just return the path.
-'''
+
 def get_absolute_path(path: str, current_url: str) -> str:
     '''
-    given a path and url properly merge into one absolute link 
+    Check the given url, see if its relative or absolute path.
+    If relative, make the conversion and return the path.
+    If absolute, just return the path.
     '''
     path = urldefrag(path)[0]
     return urljoin(current_url, path)
     
 
-'''
-Check url pattern to make sure does not lead to a trap
-'''
-def is_recursive_trap(parsed) -> bool:
+def is_recursive_trap(parsed: ParseResult) -> bool:
     '''
-    Given a parsed link check to make sure it is not a trap by repating directories in the path
-    returns true if trap else false 
+    Given a parsed link check the path. If there are too many repeating directories 
+    in the path returns True (is a trap) else False (not a trap)
     '''
     path_list = parsed.path.split("/")
     same_count = Counter(path_list)
@@ -390,7 +383,7 @@ def is_recursive_trap(parsed) -> bool:
         return True
     return False
 
-def is_query_trap(parsed) -> bool:
+def is_query_trap(parsed: ParseResult) -> bool:
     '''
     Given a parsed link check to make sure not stuck in a dynamic page by 
     checking to make sure the nuber or links geneated by queries from one page does not exceed REPEATED_THRESH
@@ -403,11 +396,11 @@ def is_query_trap(parsed) -> bool:
     visit_count[base] = visit_count[base] + 1
     return visit_count[base] > REPEATED_THRESH
 
-def subdomain_pages(urls: set) -> Counter:
+def subdomain_pages(urls: set) -> Counter[str, int]:
     '''
-    given a set of all urls visited populate a counter for number of urls visited
+    Given a set of all urls visited populate a counter for number of urls visited
     for every subdomain in ics.uci.edu. 
-    return the subdomin_count counter   
+    Return the subdomain_count Counter   
     '''
     subdomain_count = Counter()
     for url in urls:
@@ -419,7 +412,7 @@ def subdomain_pages(urls: set) -> Counter:
 
 def summary() -> None:
     '''
-    prints out relvant information at the end of the crawl including: 
+    Prints out relvant information at the end of the crawl including: 
     150 most common words seen through out all pages 
     the largest page and its token count 
     the number of valid pages reached by the crawler 
